@@ -25,11 +25,12 @@ app.use((req, res, next) => {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (process.env.NODE_ENV === 'development') {
+        if (logLine.length > 80) {
+          logLine = logLine.slice(0, 79) + "…";
+        }
+        log(logLine);
       }
-
-      log(logLine);
     }
   });
 

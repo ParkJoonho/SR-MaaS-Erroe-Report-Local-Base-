@@ -35,6 +35,20 @@ export interface IStorage {
   }>;
   getWeeklyStats(): Promise<Array<{ week: string; errors: number; resolved: number }>>;
   getCategoryStats(): Promise<Array<{ category: string; count: number }>>;
+  
+  // Analytics methods
+  getTotalErrorCount(): Promise<number>;
+  getResolvedErrorCount(): Promise<number>;
+  getSystemDistribution(): Promise<Array<{ system: string; count: number }>>;
+  saveAnalysisResult(data: {
+    analysisType: string;
+    period: string;
+    data: any;
+    metadata?: any;
+  }): Promise<void>;
+  
+  // Raw query method for complex analytics
+  query(sql: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -249,6 +263,58 @@ export class DatabaseStorage implements IStorage {
       category: stat.system,
       count: stat.count
     }));
+  }
+
+  // Analytics methods implementation
+  async getTotalErrorCount(): Promise<number> {
+    const result = await db.select({ count: count() }).from(errors);
+    return result[0].count;
+  }
+
+  async getResolvedErrorCount(): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(errors)
+      .where(eq(errors.status, "해결됨"));
+    return result[0].count;
+  }
+
+  async getSystemDistribution(): Promise<Array<{ system: string; count: number }>> {
+    const stats = await db
+      .select({
+        system: errors.system,
+        count: count()
+      })
+      .from(errors)
+      .groupBy(errors.system);
+
+    return stats.map(stat => ({
+      system: stat.system,
+      count: stat.count
+    }));
+  }
+
+  async saveAnalysisResult(data: {
+    analysisType: string;
+    period: string;
+    data: any;
+    metadata?: any;
+  }): Promise<void> {
+    // For now, just use SQL to insert into analysis_results table
+    await db.execute(sql`
+      INSERT INTO analysis_results (analysis_type, period, data, metadata, created_at)
+      VALUES (${data.analysisType}, ${data.period}, ${JSON.stringify(data.data)}, ${JSON.stringify(data.metadata || {})}, NOW())
+    `);
+  }
+  
+  async query(sqlQuery: string): Promise<any[]> {
+    try {
+      const result = await db.execute(sql.raw(sqlQuery));
+      return result.rows || [];
+    } catch (error) {
+      console.error('Database query error:', error);
+      return [];
+    }
   }
 }
 

@@ -3,7 +3,7 @@ import type { Express, RequestHandler } from "express";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import type { User } from "@shared/schema";
+import type { User as UserType } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 
 const scryptAsync = promisify(scrypt);
@@ -19,7 +19,7 @@ const DEFAULT_ADMIN = {
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User extends UserType {}
   }
 }
 
@@ -216,14 +216,7 @@ export async function setupOfflineAuth(app: Express) {
     });
   });
 
-  // 현재 사용자 정보
-  app.get("/api/auth/user", (req, res) => {
-    const user = (req.session as any)?.user;
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    res.json(user);
-  });
+  // 오프라인 모드에서는 routes.ts에서 /api/auth/user를 처리하므로 여기서는 등록하지 않음
 }
 
 async function ensureDefaultAdmin() {
@@ -252,7 +245,7 @@ async function ensureDefaultAdmin() {
   }
 }
 
-async function authenticateUser(username: string, password: string): Promise<User | null> {
+async function authenticateUser(username: string, password: string): Promise<UserType | null> {
   try {
     const user = await storage.getUserByUsername?.(username);
     if (!user || !user.password) {
@@ -266,7 +259,7 @@ async function authenticateUser(username: string, password: string): Promise<Use
 
     // 비밀번호 필드 제거한 사용자 정보 반환
     const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as User;
+    return userWithoutPassword as UserType;
   } catch (error) {
     console.error("사용자 인증 오류:", error);
     return null;

@@ -5,7 +5,7 @@ const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // 오류 처리를 위한 기본값
 const DEFAULT_TITLE = '시스템 오류';
-const DEFAULT_CATEGORY = '시설물관리';
+const DEFAULT_CATEGORY = '역무지원';
 
 export async function generateTitle(content: string): Promise<string> {
   try {
@@ -140,6 +140,7 @@ function extractKeywords(content: string): string[] {
   if (lowerContent.includes('로그인') || lowerContent.includes('인증')) keywords.push('로그인');
   if (lowerContent.includes('결제') || lowerContent.includes('카드')) keywords.push('결제');
   if (lowerContent.includes('예약') || lowerContent.includes('승차권')) keywords.push('예약');
+  if (lowerContent.includes('이폼') || lowerContent.includes('양식') || lowerContent.includes('역무지원')) keywords.push('역무지원');
   if (lowerContent.includes('화면') || lowerContent.includes('페이지')) keywords.push('화면');
   if (lowerContent.includes('오류') || lowerContent.includes('에러')) keywords.push('오류');
   if (lowerContent.includes('접속') || lowerContent.includes('연결')) keywords.push('접속');
@@ -151,6 +152,25 @@ function extractKeywords(content: string): string[] {
 
 // 키워드로부터 제목 생성
 function generateTitleFromKeywords(keywords: string[], content: string): string {
+  const lowerContent = content.toLowerCase();
+  
+  // 특정 패턴 우선 매칭
+  if (lowerContent.includes('역무지원') && lowerContent.includes('이폼')) {
+    return '역무지원 이폼 문제';
+  }
+  
+  if (lowerContent.includes('이폼') || lowerContent.includes('양식')) {
+    return '전자 양식 문제';
+  }
+  
+  if (lowerContent.includes('예약') && lowerContent.includes('문제')) {
+    return '예약 시스템 문제';
+  }
+  
+  if (lowerContent.includes('결제') && lowerContent.includes('오류')) {
+    return '결제 처리 오류';
+  }
+  
   if (keywords.length === 0) {
     return '시스템 오류 신고';
   }
@@ -159,7 +179,7 @@ function generateTitleFromKeywords(keywords: string[], content: string): string 
   const secondaryKeyword = keywords[1];
   
   let title = primaryKeyword;
-  if (secondaryKeyword) {
+  if (secondaryKeyword && secondaryKeyword !== primaryKeyword) {
     title += ` ${secondaryKeyword}`;
   }
   title += ' 문제';
@@ -180,8 +200,8 @@ function generateTitleFromKeywords(keywords: string[], content: string): string 
 function classifyByKeywords(content: string): string {
   const lowerContent = content.toLowerCase();
   
-  // 역무지원 키워드
-  const ticketKeywords = ['승차권', '예약', '결제', '고객', '티켓', '발권', '환불', '변경'];
+  // 역무지원 키워드 (전자 양식, 고객 서비스 관련)
+  const ticketKeywords = ['승차권', '예약', '결제', '고객', '티켓', '발권', '환불', '변경', '이폼', 'e폼', '양식', '신청', '접수', '서비스', '역무지원', '역무'];
   if (ticketKeywords.some(keyword => lowerContent.includes(keyword))) {
     return '역무지원';
   }
@@ -198,6 +218,11 @@ function classifyByKeywords(content: string): string {
     return '시설물관리';
   }
   
-  // 기본값
+  // 시스템 오류는 역무지원으로 분류
+  if (lowerContent.includes('시스템') || lowerContent.includes('화면') || lowerContent.includes('페이지') || lowerContent.includes('웹') || lowerContent.includes('앱')) {
+    return '역무지원';
+  }
+  
+  // 기본값: 알 수 없는 경우 역무지원으로 분류
   return DEFAULT_CATEGORY;
 }

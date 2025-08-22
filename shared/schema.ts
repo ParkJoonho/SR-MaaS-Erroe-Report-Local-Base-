@@ -45,6 +45,7 @@ export const errors = pgTable("errors", {
   status: varchar("status", { length: 50 }).notNull().default("접수됨"),
   browser: varchar("browser", { length: 255 }),
   os: varchar("os", { length: 255 }),
+  screenResolution: varchar("screen_resolution", { length: 100 }),
   attachments: text("attachments").array(),
   reporterId: varchar("reporter_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -72,6 +73,20 @@ export type User = typeof users.$inferSelect;
 export type InsertError = z.infer<typeof insertErrorSchema>;
 export type UpdateError = z.infer<typeof updateErrorSchema>;
 export type Error = typeof errors.$inferSelect;
+
+// 분석 결과 테이블
+export const analysisResults = pgTable("analysis_results", {
+  id: serial("id").primaryKey(),
+  analysisType: varchar("analysis_type").notNull(), // trend, prediction, pattern
+  period: varchar("period").notNull(), // daily, weekly, monthly
+  data: jsonb("data").notNull(), // 분석 결과 데이터
+  metadata: jsonb("metadata"), // 분석 메타데이터
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAnalysisResultSchema = createInsertSchema(analysisResults);
+export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
+export type AnalysisResult = typeof analysisResults.$inferSelect;
 
 // Type interfaces for API responses
 export interface ErrorStatsResponse {

@@ -9,6 +9,7 @@ import ErrorReport from "@/pages/error-report";
 import AdminDashboard from "@/pages/admin-dashboard";
 import ErrorSubmit from "@/pages/error-submit";
 import ErrorEdit from "@/pages/error-edit";
+import AnalyticsPage from "@/pages/analytics";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/error-edit/:errorId">
         {(params) => <ErrorEdit errorId={params.errorId} />}
       </Route>
+      <Route path="/analytics" component={AnalyticsPage} />
       <Route component={NotFound} />
     </Switch>
   );

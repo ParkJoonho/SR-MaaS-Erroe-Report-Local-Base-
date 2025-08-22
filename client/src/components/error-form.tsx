@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertErrorSchema } from "@shared/schema";
@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Wand2, Upload, RotateCcw, Send } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { z } from "zod";
+import { getSystemInfo, formatBrowserString, type SystemInfo } from "@/lib/system-info";
 
 const formSchema = insertErrorSchema.extend({
   reporterId: z.string().optional()
@@ -22,8 +23,32 @@ const formSchema = insertErrorSchema.extend({
 export default function ErrorForm() {
   const [contentLength, setContentLength] = useState(0);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // 시스템 정보 초기화
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const info = getSystemInfo();
+        console.log('=== FORM SYSTEM INFO DEBUG ===');
+        console.log('Full system info object in form:', info);
+        setSystemInfo(info);
+      } catch (error) {
+        console.error('Error loading system info:', error);
+        // 기본값 설정
+        setSystemInfo({
+          browser: 'Unknown',
+          browserVersion: '',
+          os: 'Unknown',
+          platform: navigator.platform || 'Unknown',
+          screenResolution: 'Unknown',
+          userAgent: navigator.userAgent || 'Unknown'
+        });
+      }
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,6 +61,14 @@ export default function ErrorForm() {
       os: "",
     },
   });
+
+  // 시스템 정보가 로드되면 폼에 설정
+  useEffect(() => {
+    if (systemInfo) {
+      form.setValue('browser', formatBrowserString(systemInfo));
+      form.setValue('os', systemInfo.os);
+    }
+  }, [systemInfo, form]);
 
   const createErrorMutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
@@ -260,8 +293,8 @@ export default function ErrorForm() {
                 <FormControl>
                   <Input
                     {...field}
-                    value={field.value || ""}
-                    placeholder="Chrome 119.0.0.0"
+                    value={field.value || (systemInfo ? formatBrowserString(systemInfo) : "")}
+                    placeholder={systemInfo ? formatBrowserString(systemInfo) : "Chrome 119.0.0.0"}
                     data-testid="input-browser"
                   />
                 </FormControl>
@@ -279,8 +312,8 @@ export default function ErrorForm() {
                 <FormControl>
                   <Input
                     {...field}
-                    value={field.value || ""}
-                    placeholder="Windows 11"
+                    value={field.value || (systemInfo ? systemInfo.os : "")}
+                    placeholder={systemInfo ? systemInfo.os : "Windows 11"}
                     data-testid="input-os"
                   />
                 </FormControl>
